@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Whales Market · Price Alerts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#050810;--panel:#0c1220;--panel2:#111827;--border:#1e2d45;
+    --accent:#00e5ff;--accent2:#7c3aed;--green:#00ff88;--red:#ff3860;
+    --text:#e2eaf5;--muted:#4a6080;--mono:'Space Mono',monospace;--sans:'Syne',sans-serif;
+  }
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+  .wrap{position:relative;z-index:1;max-width:820px;margin:0 auto;padding:0 20px 60px}
+  header{display:flex;align-items:center;gap:16px;padding:40px 0 32px;border-bottom:1px solid var(--border);margin-bottom:32px}
+  .logo-mark{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--accent2),var(--accent));display:grid;place-items:center;font-size:22px;flex-shrink:0;box-shadow:0 0 24px rgba(0,229,255,.3)}
+  .header-text h1{font-family:var(--sans);font-size:22px;font-weight:800;letter-spacing:-.5px}
+  .header-text p{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px}
+  .live-badge{margin-left:auto;display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--accent);background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);padding:6px 14px;border-radius:20px}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.5s infinite}
+  @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,229,255,.5)}50%{opacity:.7;box-shadow:0 0 0 5px rgba(0,229,255,0)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  .section{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px;animation:fadeUp .4s ease both}
+  .section-title{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+  .section-title::before{content:'';width:20px;height:2px;background:var(--accent);border-radius:2px}
+  label{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em;margin-bottom:7px}
+  input,select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--mono);font-size:14px;padding:11px 14px;outline:none;transition:border-color .2s,box-shadow .2s;appearance:none}
+  input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,229,255,.1)}
+  input::placeholder{color:var(--muted)}
+  .input-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .input-group{margin-bottom:14px}
+  .btn{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.08em;border:none;border-radius:10px;padding:12px 22px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:8px}
+  .btn-primary{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#000;width:100%;justify-content:center;font-size:13px}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,229,255,.25)}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);padding:7px 14px;font-size:11px}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+  .stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+  .stat-label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+  .stat-value{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--text)}
+  .stat-value.green{color:var(--green)}.stat-value.cyan{color:var(--accent)}
+  #alerts-list{display:flex;flex-direction:column;gap:12px;min-height:60px}
+  .alert-card{background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:16px;animation:fadeUp .3s ease both;transition:border-color .2s}
+  .alert-card.triggered{border-color:var(--green);background:rgba(0,255,136,.04)}
+  .alert-token{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--accent);min-width:64px}
+  .alert-info{flex:1;display:flex;flex-direction:column;gap:3px}
+  .alert-price{font-family:var(--mono);font-size:13px;color:var(--text)}
+  .alert-meta{font-family:var(--mono);font-size:10px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .alert-direction{display:inline-flex;align-items:center;font-family:var(--mono);font-size:10px;padding:3px 10px;border-radius:20px}
+  .dir-above{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.25)}
+  .dir-below{background:rgba(255,56,96,.1);color:var(--red);border:1px solid rgba(255,56,96,.25)}
+  .alert-current{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right;min-width:90px}
+  .alert-current span{display:block;font-size:10px;margin-bottom:2px}
+  .alert-current b{color:var(--text);font-size:14px}
+  .status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .status-dot.watching{background:var(--accent);animation:pulse 2s infinite}
+  .status-dot.triggered{background:var(--green)}
+  .tg-status{display:flex;align-items:center;gap:10px;margin-top:14px;font-family:var(--mono);font-size:12px}
+  .tg-ok{color:var(--green)}.tg-err{color:var(--red)}.tg-idle{color:var(--muted)}
+  .proxy-row{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .proxy-tag{font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:20px;cursor:pointer;border:1px solid var(--border);color:var(--muted);transition:all .15s}
+  .proxy-tag.active{border-color:var(--accent);color:var(--accent);background:rgba(0,229,255,.07)}
+  .proxy-tag.ok{border-color:var(--green);color:var(--green);background:rgba(0,255,136,.06)}
+  .proxy-tag.fail{border-color:var(--red);color:var(--red);opacity:.5;text-decoration:line-through}
+  .empty{text-align:center;padding:32px 0;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .empty span{display:block;font-size:28px;margin-bottom:10px}
+  #toast{position:fixed;bottom:30px;right:30px;background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:14px 20px;font-family:var(--mono);font-size:12px;color:var(--text);z-index:999;transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.4,0,.2,1);max-width:340px}
+  #toast.show{transform:translateY(0);opacity:1}
+  #toast.success{border-color:var(--green);color:var(--green)}
+  #toast.error{border-color:var(--red);color:var(--red)}
+  #log{font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.8;max-height:160px;overflow-y:auto}
+  #log .log-ok{color:var(--green)}#log .log-err{color:var(--red)}#log .log-info{color:var(--accent)}
+  ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a6080' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+  select option{background:var(--panel2)}
+  .chain-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .chain-btn{font-family:var(--mono);font-size:10px;padding:4px 12px;border-radius:20px;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:transparent;transition:all .15s}
+  .chain-btn.active{border-color:var(--accent2);color:var(--accent2);background:rgba(124,58,237,.1)}
+  @media(max-width:600px){.input-row{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.alert-current{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo-mark">🐋</div>
+    <div class="header-text">
+      <h1>Whales Market Alerts</h1>
+      <p>PRICE MONITOR · v2/offers · api.whales.market</p>
+    </div>
+    <div class="live-badge"><div class="live-dot"></div><span id="live-label">STANDBY</span></div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Активных алертов</div><div class="stat-value cyan" id="stat-active">0</div></div>
+    <div class="stat"><div class="stat-label">Сработало</div><div class="stat-value green" id="stat-triggered">0</div></div>
+    <div class="stat"><div class="stat-label">Прокси</div><div class="stat-value" id="stat-proxy" style="font-size:12px;margin-top:4px;color:var(--muted)">—</div></div>
+  </div>
+
+  <!-- Telegram -->
+  <div class="section" style="animation-delay:.05s">
+    <div class="section-title">Telegram</div>
+    <div class="input-row">
+      <div class="input-group" style="margin:0">
+        <label>BOT TOKEN</label>
+        <input id="tg-token" type="password" placeholder="7123456789:AAH…" autocomplete="off">
+      </div>
+      <div class="input-group" style="margin:0">
+        <label>CHAT ID</label>
+        <input id="tg-chat" type="text" placeholder="272961585" autocomplete="off">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="testTelegram()">▶ Тест</button>
+      <button class="btn btn-ghost" onclick="getMyId()">🆔 Узнать Chat ID</button>
+    </div>
+    <div id="tg-status" class="tg-status tg-idle">— не проверено</div>
+  </div>
+
+  <!-- New Alert -->
+  <div class="section" style="animation-delay:.1s">
+    <div class="section-title">Создать алерт</div>
+
+    <!-- Proxy selector -->
+    <div style="margin-bottom:18px">
+      <label>CORS ПРОКСИ</label>
+      <div class="proxy-row" id="proxy-row">
+        <button class="btn btn-ghost" onclick="testAllProxies()" style="font-size:10px;padding:5px 12px">⟳ Проверить все</button>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div class="input-group" style="margin:0">
+        <label>СИМВОЛ ТОКЕНА</label>
+        <input id="new-token" type="text" placeholder="BP" style="text-transform:uppercase">
+      </div>
+      <div class="input-group" style="margin:0">
+        <label>ЦЕЛЬ (USDC)</label>
+        <input id="new-price" type="number" step="0.0001" min="0.0001" placeholder="0.3500">
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>НАПРАВЛЕНИЕ</label>
+      <select id="new-dir">
+        <option value="above">📈 Уведомить, когда цена ПОДНИМЕТСЯ до цели</option>
+        <option value="below">📉 Уведомить, когда цена ОПУСТИТСЯ до цели</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label>БЛОКЧЕЙН (chains) — опционально, по умолчанию все</label>
+      <div class="chain-row" id="chain-row">
+        <button class="chain-btn" data-chain="" onclick="selectChain(this)">Все сети</button>
+        <button class="chain-btn" data-chain="56"  onclick="selectChain(this)">BSC (56)</button>
+        <button class="chain-btn" data-chain="1"   onclick="selectChain(this)">ETH (1)</button>
+        <button class="chain-btn" data-chain="137" onclick="selectChain(this)">Polygon (137)</button>
+        <button class="chain-btn" data-chain="sol" onclick="selectChain(this)">Solana</button>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>ИНТЕРВАЛ ПРОВЕРКИ</label>
+      <select id="new-interval">
+        <option value="15">Каждые 15 сек</option>
+        <option value="30" selected>Каждые 30 сек</option>
+        <option value="60">Каждую минуту</option>
+        <option value="120">Каждые 2 минуты</option>
+        <option value="300">Каждые 5 минут</option>
+      </select>
+    </div>
+
+    <button class="btn btn-primary" onclick="addAlert()">+ Добавить алерт</button>
+  </div>
+
+  <!-- Alerts list -->
+  <div class="section" style="animation-delay:.15s">
+    <div class="section-title" style="justify-content:space-between">
+      <span style="display:flex;align-items:center;gap:8px">
+        <span style="width:20px;height:2px;background:var(--accent);border-radius:2px;display:inline-block"></span>Алерты
+      </span>
+      <button class="btn btn-ghost" onclick="clearTriggered()" style="font-size:10px;padding:5px 12px">Очистить выполненные</button>
+    </div>
+    <div id="alerts-list"><div class="empty"><span>🔔</span>Нет активных алертов</div></div>
+  </div>
+
+  <!-- Log -->
+  <div class="section" style="animation-delay:.2s">
+    <div class="section-title">Журнал событий</div>
+    <div id="log"><span class="log-info">[SYS] Готов. Используется API v2/offers (тот же что и рабочий Python-скрипт).</span></div>
+  </div>
+
+</div>
+<div id="toast"></div>
+
+<script>
+// ─── CORS Proxies ─────────────────────────────────────────────────────────────
+// allorigins ставим первым — corsproxy.io требует платный ключ для GitHub Pages
+const PROXIES = [
+  { name: 'allorigins',  url: 'https://api.allorigins.win/raw?url=' },
+  { name: 'corsproxy.io (платный)', url: 'https://corsproxy.io/?url=' },
+  { name: 'thingproxy', url: 'https://thingproxy.freeboard.io/fetch/' },
+  { name: 'no-cors-proxy (try direct)', url: '' },  // попытка без прокси (может сработать с GitHub Pages)
+];
+let activeProxyIdx = 0;
+const proxyStatus = {};
+
+// ─── Выбор сети ───────────────────────────────────────────────────────────────
+let selectedChain = '';
+function selectChain(el) {
+  document.querySelectorAll('.chain-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  selectedChain = el.dataset.chain;
+}
+document.querySelector('.chain-btn').classList.add('active'); // «Все сети» по умолчанию
+
+// ─── Proxy UI ─────────────────────────────────────────────────────────────────
+function initProxyUI() {
+  const row = document.getElementById('proxy-row');
+  PROXIES.forEach((p, i) => {
+    const b = document.createElement('span');
+    b.className = 'proxy-tag' + (i === 0 ? ' active' : '');
+    b.id = 'proxy-' + i;
+    b.textContent = p.name;
+    b.onclick = () => selectProxy(i);
+    row.insertBefore(b, row.firstChild);
+  });
+}
+function selectProxy(i) {
+  activeProxyIdx = i; updateProxyTags();
+  document.getElementById('stat-proxy').textContent = PROXIES[i].name;
+  log('Прокси: ' + PROXIES[i].name, 'info');
+}
+function updateProxyTags() {
+  PROXIES.forEach((p, i) => {
+    const el = document.getElementById('proxy-' + i); if (!el) return;
+    const s = proxyStatus[p.name] || '';
+    el.className = 'proxy-tag' + (s === 'ok' ? ' ok' : s === 'fail' ? ' fail' : '');
+    if (i === activeProxyIdx) el.classList.add('active');
+  });
+}
+async function testProxy(i) {
+  const p = PROXIES[i];
+  // Тестируем с реальным эндпоинтом v2/offers
+  const apiUrl = buildApiUrl('BP', '56');
+  try {
+    const fullUrl = p.url ? p.url + encodeURIComponent(apiUrl) : apiUrl;
+    const res = await fetch(fullUrl, { signal: AbortSignal.timeout(7000) });
+    const text = await res.text();
+    // Считаем рабочим если вернул JSON с полем data
+    const ok = res.status === 200 && text.includes('"data"');
+    proxyStatus[p.name] = ok ? 'ok' : 'fail';
+    log((ok ? '✓ ' : '✗ ') + p.name + ' — HTTP ' + res.status + (ok ? ' (данные получены!)' : ''), ok ? 'ok' : 'err');
+    return ok;
+  } catch (e) {
+    proxyStatus[p.name] = 'fail';
+    log('✗ ' + p.name + ' — ' + e.message, 'err');
+    return false;
+  } finally { updateProxyTags(); }
+}
+async function testAllProxies() {
+  log('Тестирую прокси с реальным API…', 'info');
+  toast('Тестирую прокси…');
+  let found = false;
+  for (let i = 0; i < PROXIES.length; i++) {
+    const ok = await testProxy(i);
+    if (ok && !found) { found = true; selectProxy(i); toast('✓ ' + PROXIES[i].name + ' работает!', 'success'); }
+  }
+  if (!found) { toast('Прокси не работают. Попробуй позже или открой через VPN.', 'error'); log('Нет рабочего прокси', 'err'); }
+}
+
+// ─── Whales Market API v2 ─────────────────────────────────────────────────────
+// Точная копия параметров из рабочего Python-скрипта
+function buildApiUrl(symbol, chain) {
+  const p = new URLSearchParams({
+    type: 'buy',
+    category_token: 'pre_market',
+    symbol: symbol.toUpperCase(),
+    status: 'open',
+    take: '15',
+    page: '1',
+    sort_price: 'DESC',
+    order_type: 'normal',
+  });
+  if (chain) p.set('chains', chain);
+  return 'https://api.whales.market/v2/offers?' + p.toString();
+}
+
+async function fetchBuyPrice(symbol, chain) {
+  const apiUrl = buildApiUrl(symbol, chain);
+  const proxy = PROXIES[activeProxyIdx];
+  const fullUrl = proxy.url ? proxy.url + encodeURIComponent(apiUrl) : apiUrl;
+
+  const res = await fetch(fullUrl, {
+    signal: AbortSignal.timeout(12000),
+    headers: proxy.url ? {} : {
+      // При прямом запросе добавляем заголовки как в Python
+      'accept': 'application/json, text/plain, */*',
+      'origin': 'https://whales.market',
+      'referer': 'https://whales.market/',
+    }
+  });
+
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+
+  // Структура: data.data.list[].offer_price_usd  (из рабочего Python-скрипта)
+  const list = data?.data?.list ?? data?.list ?? data?.offers ?? [];
+  if (!list.length) return null;
+
+  // Берём максимальную цену покупки
+  const prices = list
+    .map(o => parseFloat(o.offer_price_usd ?? o.price_usd ?? o.price ?? 0))
+    .filter(p => p > 0);
+
+  return prices.length ? Math.max(...prices) : null;
+}
+
+// ─── Telegram ─────────────────────────────────────────────────────────────────
+const tgToken = () => document.getElementById('tg-token').value.trim();
+const tgChat  = () => document.getElementById('tg-chat').value.trim();
+
+async function tgSend(text) {
+  const tok = tgToken(), chat = tgChat();
+  if (!tok || !chat) throw new Error('Не заполнен Telegram токен или Chat ID');
+  const res = await fetch(`https://api.telegram.org/bot${tok}/sendMessage`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chat, text, parse_mode: 'HTML' })
+  });
+  const d = await res.json();
+  if (!d.ok) throw new Error(d.description);
+}
+
+async function testTelegram() {
+  const el = document.getElementById('tg-status');
+  el.className = 'tg-status tg-idle'; el.textContent = '⏳ Проверяю…';
+  try {
+    await tgSend('✅ Whales Market Alert Bot подключён!\n\nМониторинг цен запущен через api.whales.market/v2/offers');
+    el.className = 'tg-status tg-ok'; el.textContent = '✓ Работает';
+    toast('Telegram OK!', 'success'); log('Telegram: тест пройден', 'ok'); save();
+  } catch (e) {
+    el.className = 'tg-status tg-err'; el.textContent = '✗ ' + e.message;
+    toast(e.message, 'error'); log('Telegram: ' + e.message, 'err');
+  }
+}
+
+async function getMyId() {
+  const tok = tgToken(); if (!tok) { toast('Введи Bot Token', 'error'); return; }
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${tok}/getUpdates?limit=5`);
+    const d = await res.json();
+    if (!d.ok) throw new Error(d.description);
+    if (!d.result.length) { toast('Напиши что-нибудь боту в Telegram, затем нажми снова', 'error'); return; }
+    const id = d.result[d.result.length - 1].message?.chat?.id;
+    if (id) { document.getElementById('tg-chat').value = id; toast('Chat ID: ' + id, 'success'); log('Chat ID: ' + id, 'ok'); save(); }
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ─── Alerts ───────────────────────────────────────────────────────────────────
+const state = { alerts: [] };
+let alertIdCounter = 1;
+
+function addAlert() {
+  const token    = document.getElementById('new-token').value.trim().toUpperCase();
+  const target   = parseFloat(document.getElementById('new-price').value);
+  const dir      = document.getElementById('new-dir').value;
+  const interval = parseInt(document.getElementById('new-interval').value);
+  const chain    = selectedChain;
+
+  if (!token)              { toast('Введи символ токена', 'error'); return; }
+  if (!target || target <= 0) { toast('Введи корректную цену', 'error'); return; }
+  if (!tgToken() || !tgChat()) { toast('Сначала заполни Telegram настройки', 'error'); return; }
+
+  const a = { id: alertIdCounter++, token, target, dir, interval, chain, status: 'watching', currentPrice: null, timerId: null };
+  state.alerts.push(a);
+  scheduleCheck(a);
+  document.getElementById('new-token').value = '';
+  document.getElementById('new-price').value = '';
+  toast('Алерт создан!', 'success');
+  log('Алерт: ' + token + (dir === 'above' ? ' ≥ ' : ' ≤ ') + '$' + target.toFixed(4) + (chain ? ' [chain:' + chain + ']' : ' [все сети]'), 'ok');
+  renderAlerts(); updateStats(); save();
+  document.getElementById('live-label').textContent = 'LIVE';
+}
+
+function scheduleCheck(a) {
+  if (a.timerId) clearTimeout(a.timerId);
+  if (a.status === 'triggered') return;
+  a.timerId = setTimeout(async () => { await checkAlert(a); scheduleCheck(a); }, a.interval * 1000);
+}
+
+async function checkAlert(a) {
+  if (a.status === 'triggered') return;
+  log('Проверяю ' + a.token + (a.chain ? ' [chain ' + a.chain + ']' : '') + '…');
+  try {
+    const price = await fetchBuyPrice(a.token, a.chain);
+    if (price === null) {
+      log(a.token + ': нет открытых buy-ордеров', 'err');
+      a.currentPrice = null;
+    } else {
+      a.currentPrice = price;
+      log(a.token + ': лучшая цена покупки $' + price.toFixed(4), 'info');
+      const hit = (a.dir === 'above' && price >= a.target) || (a.dir === 'below' && price <= a.target);
+      if (hit) {
+        a.status = 'triggered';
+        const dt = a.dir === 'above' ? 'поднялась до' : 'опустилась до';
+        const msg =
+          `🔔 <b>Алерт сработал!</b>\n\n` +
+          `Токен: <b>${a.token}</b>\n` +
+          `Лучшая цена покупки ${dt} <b>$${price.toFixed(4)}</b>\n` +
+          `(ваша цель: $${a.target.toFixed(4)})\n\n` +
+          `<a href="https://pro.whales.market/premarket/${a.token}">Открыть ${a.token} на Whales Market ↗</a>`;
+        await tgSend(msg);
+        log('🔔 ' + a.token + ' = $' + price.toFixed(4) + ' — АЛЕРТ СРАБОТАЛ!', 'ok');
+        toast('🔔 ' + a.token + ' достиг $' + price.toFixed(4) + '!', 'success');
+        save();
+      }
+    }
+  } catch (e) {
+    log(a.token + ': ошибка — ' + e.message, 'err');
+  }
+  renderAlerts(); updateStats();
+}
+
+function removeAlert(id) {
+  const i = state.alerts.findIndex(a => a.id === id); if (i === -1) return;
+  clearTimeout(state.alerts[i].timerId);
+  state.alerts.splice(i, 1);
+  renderAlerts(); updateStats(); save();
+}
+function clearTriggered() {
+  state.alerts.filter(a => a.status === 'triggered').forEach(a => clearTimeout(a.timerId));
+  state.alerts = state.alerts.filter(a => a.status !== 'triggered');
+  renderAlerts(); updateStats(); save();
+}
+function renderAlerts() {
+  const el = document.getElementById('alerts-list');
+  if (!state.alerts.length) { el.innerHTML = '<div class="empty"><span>🔔</span>Нет активных алертов</div>'; return; }
+  el.innerHTML = state.alerts.map(a => `
+    <div class="alert-card${a.status === 'triggered' ? ' triggered' : ''}">
+      <div class="status-dot ${a.status === 'triggered' ? 'triggered' : 'watching'}"></div>
+      <div class="alert-token">${a.token}</div>
+      <div class="alert-info">
+        <div class="alert-price">Цель: <b>$${a.target.toFixed(4)}</b></div>
+        <div class="alert-meta">
+          <span class="alert-direction ${a.dir === 'above' ? 'dir-above' : 'dir-below'}">${a.dir === 'above' ? '▲ ВЫШЕ' : '▼ НИЖЕ'}</span>
+          ${a.status === 'triggered' ? '✓ сработал' : 'каждые ' + a.interval + 'с'}
+          ${a.chain ? '· chain ' + a.chain : '· все сети'}
+        </div>
+      </div>
+      <div class="alert-current"><span>СЕЙЧАС</span><b>${a.currentPrice != null ? '$' + a.currentPrice.toFixed(4) : '—'}</b></div>
+      <button class="btn btn-ghost" onclick="removeAlert(${a.id})">✕</button>
+    </div>`).join('');
+}
+function updateStats() {
+  const active = state.alerts.filter(a => a.status === 'watching').length;
+  const triggered = state.alerts.filter(a => a.status === 'triggered').length;
+  document.getElementById('stat-active').textContent = active;
+  document.getElementById('stat-triggered').textContent = triggered;
+  if (!active && !triggered) document.getElementById('live-label').textContent = 'STANDBY';
+}
+
+// ─── Persist ──────────────────────────────────────────────────────────────────
+function save() {
+  try {
+    localStorage.setItem('wm4', JSON.stringify({
+      tgToken: tgToken(), tgChat: tgChat(), proxy: activeProxyIdx
+    }));
+  } catch (e) {}
+}
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem('wm4') || '{}');
+    if (d.tgToken) document.getElementById('tg-token').value = d.tgToken;
+    if (d.tgChat)  document.getElementById('tg-chat').value  = d.tgChat;
+    if (d.proxy != null) selectProxy(d.proxy);
+  } catch (e) {}
+}
+
+// ─── Logger & Toast ───────────────────────────────────────────────────────────
+function log(msg, type = 'info') {
+  const el = document.getElementById('log');
+  el.innerHTML += `\n<span class="log-${type}">[${new Date().toLocaleTimeString('ru-RU')}] ${msg}</span>`;
+  el.scrollTop = el.scrollHeight;
+}
+let toastT = null;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'show ' + type;
+  clearTimeout(toastT); toastT = setTimeout(() => el.className = '', 3500);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+initProxyUI(); load(); renderAlerts(); updateStats(); updateProxyTags();
+
+document.getElementById('new-token').addEventListener('input', function () {
+  const p = this.selectionStart; this.value = this.value.toUpperCase(); this.setSelectionRange(p, p);
+});
+document.getElementById('new-price').addEventListener('keydown', e => { if (e.key === 'Enter') addAlert(); });
+
+// Авто-проверка прокси при загрузке
+setTimeout(testAllProxies, 500);
+</script>
+</body>
+</html>
